@@ -1,54 +1,48 @@
 /* Copyright 1988,1990,1993,1994 by Paul Vixie
  * All rights reserved
+ */
+
+/*
+ * Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
+ * Copyright (c) 1997,2000 by Internet Software Consortium, Inc.
  *
- * Distribute freely, except: don't remove my name from the source or
- * documentation (don't take credit for my work), mark your changes (don't
- * get me blamed for your possible bugs), don't alter or remove this
- * notice.  May be sold if buildable source is provided to buyer.  No
- * warrantee of any kind, express or implied, is included with this
- * software; use at your own risk, responsibility for damages (if any) to
- * anyone resulting from the use of this software rests entirely with the
- * user.
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
  *
- * Send bug reports, bug fixes, enhancements, requests, flames, etc., and
- * I'll try to keep a version up to date.  I can be reached as follows:
- * Paul Vixie          <paul@vix.com>          uunet!decwrl!vixie!paul
+ * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+ * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #if !defined(lint) && !defined(LINT)
-static char rcsid[] = "$Id: database.c,v 2.8 1994/01/15 20:43:43 vixie Exp $";
+static char rcsid[] = "$Id: database.c,v 1.7 2004/01/23 18:56:42 vixie Exp $";
 #endif
 
 /* vix 26jan87 [RCS has the log]
  */
 
-
 #include "cron.h"
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-
 
 #define TMAX(a,b) ((a)>(b)?(a):(b))
 
-
-static	void		process_crontab __P((char *, char *, char *,
-					     struct stat *,
-					     cron_db *, cron_db *));
-
+static	void		process_crontab(const char *, const char *,
+					const char *, struct stat *,
+					cron_db *, cron_db *);
 
 void
-load_database(old_db)
-	cron_db		*old_db;
-{
-	DIR		*dir;
-	struct stat	statbuf;
-	struct stat	syscron_stat;
-	DIR_T   	*dp;
-	cron_db		new_db;
-	user		*u, *nu;
+load_database(cron_db *old_db) {
+	struct stat statbuf, syscron_stat;
+	cron_db new_db;
+	DIR_T *dp;
+	DIR *dir;
+	user *u, *nu;
 
-	Debug(DLOAD, ("[%d] load_database()\n", getpid()))
+	Debug(DLOAD, ("[%ld] load_database()\n", (long)getpid()))
 
 	/* before we start loading any data, do a stat on SPOOL_DIR
 	 * so that if anything changes as of this moment (i.e., before we've
@@ -72,8 +66,8 @@ load_database(old_db)
 	 * time this function is called.
 	 */
 	if (old_db->mtime == TMAX(statbuf.st_mtime, syscron_stat.st_mtime)) {
-		Debug(DLOAD, ("[%d] spool dir mtime unch, no load needed.\n",
-			      getpid()))
+		Debug(DLOAD, ("[%ld] spool dir mtime unch, no load needed.\n",
+			      (long)getpid()))
 		return;
 	}
 
@@ -85,11 +79,9 @@ load_database(old_db)
 	new_db.mtime = TMAX(statbuf.st_mtime, syscron_stat.st_mtime);
 	new_db.head = new_db.tail = NULL;
 
-	if (syscron_stat.st_mtime) {
-		process_crontab("root", "*system*",
-				SYSCRONTAB, &syscron_stat,
+	if (syscron_stat.st_mtime)
+		process_crontab("root", NULL, SYSCRONTAB, &syscron_stat,
 				&new_db, old_db);
-	}
 
 	/* we used to keep this dir open all the time, for the sake of
 	 * efficiency.  however, we need to close it in every fork, and
@@ -101,8 +93,7 @@ load_database(old_db)
 	}
 
 	while (NULL != (dp = readdir(dir))) {
-		char	fname[MAXNAMLEN+1],
-			tabname[MAXNAMLEN+1];
+		char fname[MAXNAMLEN+1], tabname[MAXNAMLEN+1];
 
 		/* avoid file names beginning with ".".  this is good
 		 * because we would otherwise waste two guaranteed calls
@@ -112,8 +103,13 @@ load_database(old_db)
 		if (dp->d_name[0] == '.')
 			continue;
 
+		if (strlen(dp->d_name) >= sizeof fname)
+			continue;	/* XXX log? */
 		(void) strcpy(fname, dp->d_name);
-		sprintf(tabname, CRON_TAB(fname));
+		
+		if (!glue_strings(tabname, sizeof tabname, SPOOL_DIR,
+				  fname, '/'))
+			continue;	/* XXX log? */
 
 		process_crontab(fname, fname, tabname,
 				&statbuf, &new_db, old_db);
@@ -142,12 +138,8 @@ load_database(old_db)
 	Debug(DLOAD, ("load_database is done\n"))
 }
 
-
 void
-link_user(db, u)
-	cron_db	*db;
-	user	*u;
-{
+link_user(cron_db *db, user *u) {
 	if (db->head == NULL)
 		db->head = u;
 	if (db->tail)
@@ -157,12 +149,8 @@ link_user(db, u)
 	db->tail = u;
 }
 
-
 void
-unlink_user(db, u)
-	cron_db	*db;
-	user	*u;
-{
+unlink_user(cron_db *db, user *u) {
 	if (u->prev == NULL)
 		db->head = u->next;
 	else
@@ -174,43 +162,36 @@ unlink_user(db, u)
 		u->next->prev = u->prev;
 }
 
-
 user *
-find_user(db, name)
-	cron_db	*db;
-	char	*name;
-{
-	char	*env_get();
-	user	*u;
+find_user(cron_db *db, const char *name) {
+	user *u;
 
 	for (u = db->head;  u != NULL;  u = u->next)
-		if (!strcmp(u->name, name))
+		if (strcmp(u->name, name) == 0)
 			break;
-	return u;
+	return (u);
 }
 
-
 static void
-process_crontab(uname, fname, tabname, statbuf, new_db, old_db)
-	char		*uname;
-	char		*fname;
-	char		*tabname;
-	struct stat	*statbuf;
-	cron_db		*new_db;
-	cron_db		*old_db;
+process_crontab(const char *uname, const char *fname, const char *tabname,
+		struct stat *statbuf, cron_db *new_db, cron_db *old_db)
 {
-	struct passwd	*pw = NULL;
-	int		crontab_fd = OK - 1;
-	user		*u;
+	struct passwd *pw = NULL;
+	int crontab_fd = OK - 1;
+	user *u;
 
-	if (strcmp(fname, "*system*") && !(pw = getpwnam(uname))) {
+	if (fname == NULL) {
+		/* must be set to something for logging purposes.
+		 */
+		fname = "*system*";
+	} else if ((pw = getpwnam(uname)) == NULL) {
 		/* file doesn't have a user in passwd file.
 		 */
 		log_it(fname, getpid(), "ORPHAN", "no passwd entry");
 		goto next_crontab;
 	}
 
-	if ((crontab_fd = open(tabname, O_RDONLY, 0)) < OK) {
+	if ((crontab_fd = open(tabname, O_RDONLY|O_NONBLOCK|O_NOFOLLOW, 0)) < OK) {
 		/* crontab not accessible?
 		 */
 		log_it(fname, getpid(), "CAN'T OPEN", tabname);
@@ -219,6 +200,23 @@ process_crontab(uname, fname, tabname, statbuf, new_db, old_db)
 
 	if (fstat(crontab_fd, statbuf) < OK) {
 		log_it(fname, getpid(), "FSTAT FAILED", tabname);
+		goto next_crontab;
+	}
+	if (!S_ISREG(statbuf->st_mode)) {
+		log_it(fname, getpid(), "NOT REGULAR", tabname);
+		goto next_crontab;
+	}
+	if ((statbuf->st_mode & 07777) != 0600) {
+		log_it(fname, getpid(), "BAD FILE MODE", tabname);
+		goto next_crontab;
+	}
+	if (statbuf->st_uid != ROOT_UID && (pw == NULL ||
+	    statbuf->st_uid != pw->pw_uid || strcmp(uname, pw->pw_name) != 0)) {
+		log_it(fname, getpid(), "WRONG FILE OWNER", tabname);
+		goto next_crontab;
+	}
+	if (statbuf->st_nlink != 1) {
+		log_it(fname, getpid(), "BAD LINK COUNT", tabname);
 		goto next_crontab;
 	}
 
@@ -253,7 +251,7 @@ process_crontab(uname, fname, tabname, statbuf, new_db, old_db)
 		link_user(new_db, u);
 	}
 
-next_crontab:
+ next_crontab:
 	if (crontab_fd >= OK) {
 		Debug(DLOAD, (" [done]\n"))
 		close(crontab_fd);

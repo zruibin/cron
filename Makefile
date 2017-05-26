@@ -1,23 +1,27 @@
 #/* Copyright 1988,1990,1993,1994 by Paul Vixie
 # * All rights reserved
-# *
-# * Distribute freely, except: don't remove my name from the source or
-# * documentation (don't take credit for my work), mark your changes (don't
-# * get me blamed for your possible bugs), don't alter or remove this
-# * notice.  May be sold if buildable source is provided to buyer.  No
-# * warrantee of any kind, express or implied, is included with this
-# * software; use at your own risk, responsibility for damages (if any) to
-# * anyone resulting from the use of this software rests entirely with the
-# * user.
-# *
-# * Send bug reports, bug fixes, enhancements, requests, flames, etc., and
-# * I'll try to keep a version up to date.  I can be reached as follows:
-# * Paul Vixie          <paul@vix.com>          uunet!decwrl!vixie!paul
 # */
 
-# Makefile for vixie's cron
+##
+## Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
+## Copyright (c) 1997,2000 by Internet Software Consortium, Inc.
+##
+## Permission to use, copy, modify, and distribute this software for any
+## purpose with or without fee is hereby granted, provided that the above
+## copyright notice and this permission notice appear in all copies.
+##
+## THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
+## WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+## MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
+## ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+## WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+## ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+## OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+##
+
+# Makefile for ISC cron
 #
-# $Id: Makefile,v 2.9 1994/01/15 20:43:43 vixie Exp $
+# $Id: Makefile,v 1.9 2004/01/23 18:56:42 vixie Exp $
 #
 # vix 03mar88 [moved to RCS, rest of log is in there]
 # vix 30mar87 [goodbye, time.c; hello, getopt]
@@ -57,19 +61,12 @@ INCLUDE		=	-I.
 #<<need getopt()>>
 LIBS		=
 #<<optimize or debug?>>
-#OPTIM		=	-O
-OPTIM		=	-g
-#<<ATT or BSD or POSIX?>>
-# (ATT untested)
-#COMPAT		=	-DATT
-#(BSD is only needed if <sys/params.h> does not define it, as on ULTRIX)
-#COMPAT		=	-DBSD
-# (POSIX)
-#COMPAT		=	-DPOSIX
+#CDEBUG		=	-O
+CDEBUG		=	-g
 #<<lint flags of choice?>>
-LINTFLAGS	=	-hbxa $(INCLUDE) $(COMPAT) $(DEBUGGING)
+LINTFLAGS	=	-hbxa $(INCLUDE) $(DEBUGGING)
 #<<want to use a nonstandard CC?>>
-#CC		=	vcc
+CC		=	gcc -Wall -Wno-unused -Wno-comment
 #<<manifest defines>>
 DEFS		=
 #(SGI IRIX systems need this)
@@ -82,21 +79,21 @@ LDFLAGS		=
 #################################### end configurable stuff
 
 SHELL		=	/bin/sh
-CFLAGS		=	$(OPTIM) $(INCLUDE) $(COMPAT) $(DEFS)
+CFLAGS		=	$(CDEBUG) $(INCLUDE) $(DEFS)
 
 INFOS		=	README CHANGES FEATURES INSTALL CONVERSION THANKS MAIL
 MANPAGES	=	bitstring.3 crontab.5 crontab.1 cron.8 putman.sh
-HEADERS		=	bitstring.h cron.h config.h pathnames.h \
-			externs.h compat.h
+HEADERS		=	bitstring.h cron.h config.h pathnames.h externs.h \
+			macros.h structs.h funcs.h globals.h
 SOURCES		=	cron.c crontab.c database.c do_command.c entry.c \
-			env.c job.c user.c popen.c misc.c compat.c
+			env.c job.c user.c popen.c misc.c pw_dup.c
 SHAR_SOURCE	=	$(INFOS) $(MANPAGES) Makefile $(HEADERS) $(SOURCES)
-LINT_CRON	=	cron.c database.c user.c entry.c compat.c \
-			misc.c job.c do_command.c env.c popen.c
-LINT_CRONTAB	=	crontab.c misc.c entry.c env.c compat.c
+LINT_CRON	=	cron.c database.c user.c entry.c \
+			misc.c job.c do_command.c env.c popen.c pw_dup.c
+LINT_CRONTAB	=	crontab.c misc.c entry.c env.c
 CRON_OBJ	=	cron.o database.o user.o entry.o job.o do_command.o \
-			misc.o env.o popen.o compat.o
-CRONTAB_OBJ	=	crontab.o misc.o entry.o env.o compat.o
+			misc.o env.o popen.o pw_dup.o
+CRONTAB_OBJ	=	crontab.o misc.o entry.o env.o pw_dup.o
 
 all		:	cron crontab
 
@@ -115,14 +112,24 @@ crontab		:	$(CRONTAB_OBJ)
 install		:	all
 			$(INSTALL) -c -m  111 -o root -s cron    $(DESTSBIN)/
 			$(INSTALL) -c -m 4111 -o root -s crontab $(DESTBIN)/
+#			$(INSTALL) -c -m  111 -o root -g crontab -s cron $(DESTSBIN)/
+#			$(INSTALL) -c -m 2111 -o root -g crontab -s crontab $(DESTBIN)/
 			sh putman.sh crontab.1 $(DESTMAN)
 			sh putman.sh cron.8    $(DESTMAN)
 			sh putman.sh crontab.5 $(DESTMAN)
 
-clean		:;	rm -f *.o cron crontab a.out core tags *~ #*
+distclean	:	clean
+			rm -f *.orig *.rej *.BAK *.CKP *~ #*
+			rm -f a.out core tags
+
+clean		:
+			rm -f *.o
+			rm -f cron crontab
+
+tags		:;	ctags ${SOURCES}
 
 kit		:	$(SHAR_SOURCE)
-			makekit -m -s99k $(SHAR_SOURCE)
+			shar $(SHAR_SOURCE) >kit
 
-$(CRON_OBJ)	:	cron.h compat.h config.h externs.h pathnames.h Makefile
-$(CRONTAB_OBJ)	:	cron.h compat.h config.h externs.h pathnames.h Makefile
+$(CRON_OBJ)	:	cron.h config.h externs.h pathnames.h Makefile
+$(CRONTAB_OBJ)	:	cron.h config.h externs.h pathnames.h Makefile

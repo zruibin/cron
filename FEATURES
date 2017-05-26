@@ -1,6 +1,6 @@
-$Id: FEATURES,v 2.1 1993/12/28 08:34:43 vixie Exp $
+$Id: FEATURES,v 1.2 2004/01/23 18:56:42 vixie Exp $
 
-Features of Vixie's cron relative to BSD 4.[23] and SysV crons:
+Features of ISC cron relative to BSD 4.[23] and SysV crons:
 
 --	Environment variables can be set in each crontab.  SHELL, USER,
 	LOGNAME, and HOME are set from the user's passwd entry; all except

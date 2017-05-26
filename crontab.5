@@ -1,26 +1,28 @@
 .\"/* Copyright 1988,1990,1993,1994 by Paul Vixie
 .\" * All rights reserved
-.\" *
-.\" * Distribute freely, except: don't remove my name from the source or
-.\" * documentation (don't take credit for my work), mark your changes (don't
-.\" * get me blamed for your possible bugs), don't alter or remove this
-.\" * notice.  May be sold if buildable source is provided to buyer.  No
-.\" * warrantee of any kind, express or implied, is included with this
-.\" * software; use at your own risk, responsibility for damages (if any) to
-.\" * anyone resulting from the use of this software rests entirely with the
-.\" * user.
-.\" *
-.\" * Send bug reports, bug fixes, enhancements, requests, flames, etc., and
-.\" * I'll try to keep a version up to date.  I can be reached as follows:
-.\" * Paul Vixie          <paul@vix.com>          uunet!decwrl!vixie!paul
 .\" */
+.\" 
+.\" Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
+.\" Copyright (c) 1997,2000 by Internet Software Consortium, Inc.
 .\"
-.\" $Id: crontab.5,v 2.4 1994/01/15 20:43:43 vixie Exp $
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
+.\" OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.\" $Id: crontab.5,v 1.6 2004/01/23 19:03:33 vixie Exp $
 .\" 
 .TH CRONTAB 5 "24 January 1994"
 .UC 4
 .SH NAME
-crontab \- tables for driving cron
+crontab \- tables for driving cron (ISC Cron V4.1)
 .SH DESCRIPTION
 A
 .I crontab
@@ -97,7 +99,7 @@ minute	0-59
 .br
 hour	0-23
 .br
-day of month	0-31
+day of month	1-31
 .br
 month	0-12 (or names, see below)
 .br
@@ -148,7 +150,6 @@ would cause a command to be run at 4:30 am on the 1st and 15th of each
 month, plus every Friday.
 .SH EXAMPLE CRON FILE
 .nf
-
 # use /bin/sh to run commands, no matter what /etc/passwd says
 SHELL=/bin/sh
 # mail any output to `paul', no matter whose crontab this is
@@ -185,4 +186,4 @@ feature can be turned off and no mail will be sent at all (SysV can't do this
 either).
 .SH AUTHOR
 .nf
-Paul Vixie <paul@vix.com>
+Paul Vixie <vixie@isc.org>

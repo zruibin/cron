@@ -3,7 +3,7 @@
 # putman.sh - install a man page according to local custom
 # vixie 27dec93 [original]
 #
-# $Id:$
+# $Id: putman.sh,v 1.1.1.1 1996/12/16 19:39:48 halley Exp $
 
 PAGE=$1
 DIR=$2

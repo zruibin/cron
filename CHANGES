@@ -1,3 +1,25 @@
+ISC Cron V4
+
+9.	[misc]		megapatch from tcmiller (posix compliance, etc).
+8.	[bug]		fix stepsize 0 infinite loop.
+7.	[evol]		"enum" version of freebsd fix to env-var settings.
+6.	[evol]		changes #12-17 from tcmiller (for *BSD alignment).
+5.	[feature]	give cron a version number and display it.
+4.	[bug]		handle clock jumps (from freebsd pr# 24485)
+3.	[feature]	add -n to cron (for nofork).
+2.	[evol]		merge in many changes from *BSD and Linux.
+1.	[port]		fixups for nextstep, plus a syslog configuration bug.
+
+--------
+
+Vixie Cron		V3.0 Patch 2 notes
+Paul Vixie
+12-Dec-1994
+
+3. "Coherent" now supported.  All kinds of flock() damage was repaired.
+2. gethostname() now available in compat.c for systems that need it.
+1. There was a problem in the way the environment was being imported.
+
 Vixie Cron		Changes from V2 to V3
 Paul Vixie
 29-Dec-1993
